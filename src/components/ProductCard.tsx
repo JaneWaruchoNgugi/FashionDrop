@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../types';
+import { ImageLoader } from './ImageLoader';
 import './ProductCard.css';
 
 function formatKES(amount: number) {
@@ -29,7 +30,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link to={`/product/${product.id}`} className="product-card">
       <div className="product-card__image-wrap">
-        <img src={imageUrl(product.images[0])} alt={product.name} loading="lazy" />
+        <ImageLoader src={imageUrl(product.images[0])} alt={product.name} />
         {product.isNewDrop && <span className="badge badge-flame product-card__tag">New</span>}
         <button className="product-card__heart" type="button" aria-label="Save product">♡</button>
         {totalStock === 0 && <span className="product-card__sold-out">Sold Out</span>}

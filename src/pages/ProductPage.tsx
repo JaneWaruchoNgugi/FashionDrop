@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProductStore } from '../store/productStore';
 import { SEED_PRODUCTS } from '../store/seedData';
 import { useCartStore } from '../store/cartStore';
+import { ImageLoader } from '../components/ImageLoader';
 import './ProductPage.css';
 
 function formatKES(amount: number) {
@@ -105,11 +106,11 @@ export function ProductPage() {
     <div className="container product-detail">
       <div className="product-detail__gallery-shell">
         <div className="product-detail__gallery">
-          <img src={activeImage.url} alt={`${product.name} ${activeImage.color}`} />
+          <ImageLoader src={activeImage.url} alt={` `} imgClassName="product-detail__gallery-image" objectFit="contain" />
           <div className="product-detail__watermark">FashionDrop</div>
           {galleryImages.length > 1 && <><button className="product-detail__arrow product-detail__arrow--prev" onClick={() => stepImage(-1)} aria-label="Previous image">‹</button><button className="product-detail__arrow product-detail__arrow--next" onClick={() => stepImage(1)} aria-label="Next image">›</button><span className="product-detail__counter">{activeImageIndex + 1} / {galleryImages.length}</span></>}
         </div>
-        {galleryImages.length > 1 && <div className="product-detail__thumbs">{galleryImages.map((image, index) => <button key={`${image.url}-${index}`} className={index === activeImageIndex ? 'is-active' : ''} onClick={() => selectImage(index)} aria-label={`View ${image.color}`}><img src={image.url} alt="" /><span style={{ background: image.colorHex }} /></button>)}</div>}
+        {galleryImages.length > 1 && <div className="product-detail__thumbs">{galleryImages.map((image, index) => <button key={`${image.url}-${index}`} className={index === activeImageIndex ? 'is-active' : ''} onClick={() => selectImage(index)} aria-label={`View ${image.color}`}><ImageLoader src={image.url} alt="" imgClassName="product-detail__thumb-image" objectFit="cover" /><span style={{ background: image.colorHex }} /></button>)}</div>}
       </div>
       <div className="product-detail__info">
         {product.isNewDrop && <span className="badge badge-flame">New Drop</span>}

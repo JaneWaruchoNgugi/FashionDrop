@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
+import { ImageLoader } from '../components/ImageLoader';
 import './CartPage.css';
 
 function formatKES(amount: number) {
@@ -30,7 +31,7 @@ export function CartPage() {
         <div className="cart-lines">
           {lines.map((line) => (
             <div className="cart-line" key={`${line.productId}-${line.size}-${line.color}`}>
-              <img src={line.image} alt={line.productName} className="cart-line__image" />
+              <ImageLoader src={line.image} alt={line.productName} wrapperClassName="cart-line__image-wrap" imgClassName="cart-line__image" objectFit="cover" />
               <div className="cart-line__info">
                 <span className="cart-line__name">{line.productName}</span>
                 <span className="cart-line__variant mono">
