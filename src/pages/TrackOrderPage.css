@@ -1,0 +1,30 @@
+.track-page {
+  padding: 40px 0 80px;
+  max-width: 480px;
+}
+
+.track-page__sub {
+  color: var(--color-stone);
+  font-size: 14px;
+  margin: 0 0 24px;
+}
+
+.track-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.track-form .btn {
+  margin-top: 8px;
+}
+
+.track-result {
+  margin-top: 32px;
+}
+
+.track-result__number {
+  font-size: 16px;
+  color: var(--color-flame);
+  margin: 0;
+}

@@ -1,0 +1,141 @@
+.cart-empty {
+  padding: 80px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.cart-empty p {
+  color: var(--color-stone);
+  margin-bottom: 10px;
+}
+
+.cart-page {
+  padding: 32px 0 60px;
+}
+
+.cart-page__layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 40px;
+}
+
+@media (max-width: 800px) {
+  .cart-page__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cart-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cart-line {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.cart-line__image {
+  width: 72px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.cart-line__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cart-line__name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cart-line__variant {
+  font-size: 11px;
+  color: var(--color-stone);
+}
+
+.cart-line__price {
+  font-size: 13px;
+  color: var(--color-flame);
+}
+
+.cart-line__qty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+
+.cart-line__qty button {
+  background: none;
+  border: none;
+  color: var(--color-paper);
+  font-size: 16px;
+  width: 18px;
+}
+
+.cart-line__remove {
+  background: none;
+  border: none;
+  color: var(--color-stone);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cart-line__remove:hover {
+  color: var(--color-flame);
+}
+
+.cart-summary {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  align-self: start;
+  position: sticky;
+  top: calc(var(--header-height) + 20px);
+}
+
+.cart-summary__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.cart-summary__row--muted {
+  color: var(--color-stone);
+  font-size: 12px;
+}
+
+.cart-summary__divider {
+  height: 1px;
+  background: var(--color-line);
+  margin: 14px 0;
+}
+
+.cart-summary__row--total {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.cart-summary__cta {
+  width: 100%;
+  margin-top: 8px;
+}

@@ -1,0 +1,205 @@
+/* ============================================
+   FASHIONDROP KENYA — DESIGN TOKENS
+   ============================================ */
+
+:root {
+  /* Color */
+  --color-ink: #fffaf7;
+  --color-surface: #ffffff;
+  --color-paper: #3b0b09;
+  --color-stone: #7a504b;
+  --color-flame: #f26a21;
+  --color-flame-dim: #9f1d16;
+  --color-danger: #9f1d16;
+  --color-success: #3f8f62;
+  --color-warn: #c88719;
+  --color-line: rgba(59, 11, 9, 0.12);
+  --color-line-strong: rgba(59, 11, 9, 0.24);
+
+  /* Type */
+  --font-display: 'Anton', sans-serif;
+  --font-body: 'Archivo', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  /* Layout */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --max-width: 1280px;
+  --header-height: 72px;
+}
+
+:root[data-theme='dark'] {
+  --color-ink: #0e0e10;
+  --color-surface: #1a1a1d;
+  --color-paper: #faf7f2;
+  --color-stone: #c9c2b4;
+  --color-flame: #ff4d2e;
+  --color-flame-dim: #c93d24;
+  --color-danger: #ff6b55;
+  --color-success: #4a9d6e;
+  --color-warn: #d6a23c;
+  --color-line: rgba(250, 247, 242, 0.12);
+  --color-line-strong: rgba(250, 247, 242, 0.24);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0;
+  line-height: 1.05;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-flame);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 24px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--color-flame);
+  color: var(--color-paper);
+}
+
+.btn-primary:hover {
+  background: var(--color-flame-dim);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-paper);
+  border: 1.5px solid var(--color-line-strong);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-flame);
+  color: var(--color-flame);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-stone);
+  padding: 8px 12px;
+}
+
+.btn-ghost:hover {
+  color: var(--color-paper);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.badge-flame {
+  background: var(--color-flame);
+  color: var(--color-paper);
+}
+
+.badge-outline {
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-stone);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

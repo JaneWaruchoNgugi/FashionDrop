@@ -1,0 +1,45 @@
+.order-confirmed {
+  padding: 48px 0 80px;
+  max-width: 640px;
+}
+
+.order-confirmed__order-number {
+  font-size: 14px;
+  color: var(--color-stone);
+  margin: 0 0 4px;
+}
+
+.order-confirmed__sub {
+  color: var(--color-stone);
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+
+.order-confirmed__details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin: 24px 0 32px;
+}
+
+.order-confirmed__details p {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+
+.order-confirmed__label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-stone);
+  font-weight: 600;
+}
+
+.order-confirmed__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
