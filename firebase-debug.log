@@ -1,0 +1,134 @@
+[debug] [2026-06-27T10:02:04.471Z] ----------------------------------------------------------------------
+[debug] [2026-06-27T10:02:04.473Z] Command:       /home/jane-ngugi/.nvm/versions/node/v20.20.2/bin/node /home/jane-ngugi/.npm-global/bin/firebase deploy --only functions
+[debug] [2026-06-27T10:02:04.473Z] CLI Version:   15.21.0
+[debug] [2026-06-27T10:02:04.473Z] Platform:      linux
+[debug] [2026-06-27T10:02:04.473Z] Node Version:  v20.20.2
+[debug] [2026-06-27T10:02:04.473Z] Detected Agent: codex_cli
+[debug] [2026-06-27T10:02:04.473Z] Time:          Sat Jun 27 2026 13:02:04 GMT+0300 (East Africa Time)
+[debug] [2026-06-27T10:02:04.474Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-27T10:02:05.060Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-27T10:02:05.060Z] > authorizing via signed-in user (waruchojanen@gmail.com)
+[debug] [2026-06-27T10:02:05.060Z] [iam] checking project fashiondrop-kenya for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-06-27T10:02:05.061Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:05.061Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:05.062Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya:testIamPermissions [none]
+[debug] [2026-06-27T10:02:05.062Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya:testIamPermissions  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:05.062Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-27T10:02:13.325Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya:testIamPermissions 200
+[debug] [2026-06-27T10:02:13.326Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-27T10:02:13.327Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:13.327Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:13.327Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-06-27T10:02:13.328Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-06-27T10:02:15.464Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2026-06-27T10:02:15.465Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2026-06-27T10:02:15.466Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/fashiondrop-kenya/serviceAccounts/fashiondrop-kenya@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[info] 
+[info] === Deploying to 'fashiondrop-kenya'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-06-27T10:02:15.476Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:15.476Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:15.476Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2026-06-27T10:02:15.476Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudresourcemanager.googleapis.com  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:18.073Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudresourcemanager.googleapis.com 200
+[debug] [2026-06-27T10:02:18.074Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2026-06-27T10:02:18.083Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.083Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.084Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya [none]
+[debug] [2026-06-27T10:02:18.579Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya 200
+[debug] [2026-06-27T10:02:18.579Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/fashiondrop-kenya {"projectNumber":"189495034863","projectId":"fashiondrop-kenya","lifecycleState":"ACTIVE","name":"FashionDrop kenya","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-06-26T20:37:58.527Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[debug] [2026-06-27T10:02:18.583Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.583Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.584Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.585Z] Checked if tokens are valid: true, expires at: 1782558108941
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2026-06-27T10:02:18.586Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.586Z] Checked if tokens are valid: true, expires at: 1782558108941
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-06-27T10:02:18.587Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.587Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:18.588Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-06-27T10:02:18.588Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:18.590Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-06-27T10:02:18.590Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/runtimeconfig.googleapis.com  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:18.594Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com [none]
+[debug] [2026-06-27T10:02:18.594Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:18.597Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com [none]
+[debug] [2026-06-27T10:02:18.597Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:19.157Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com 200
+[debug] [2026-06-27T10:02:19.157Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com [omitted]
+[warn] ⚠  functions: missing required API cloudfunctions.googleapis.com. Enabling now... 
+[debug] [2026-06-27T10:02:19.159Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:19.159Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:19.159Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com:enable [none]
+[debug] [2026-06-27T10:02:19.159Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com:enable  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:20.376Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com 200
+[debug] [2026-06-27T10:02:20.376Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com [omitted]
+[warn] ⚠  functions: missing required API cloudbuild.googleapis.com. Enabling now... 
+[debug] [2026-06-27T10:02:20.377Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:20.377Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:20.377Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com:enable [none]
+[debug] [2026-06-27T10:02:20.377Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com:enable  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:20.399Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com 200
+[debug] [2026-06-27T10:02:20.399Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com [omitted]
+[warn] ⚠  artifactregistry: missing required API artifactregistry.googleapis.com. Enabling now... 
+[debug] [2026-06-27T10:02:20.401Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:20.402Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:20.403Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com:enable [none]
+[debug] [2026-06-27T10:02:20.403Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com:enable  x-goog-user-project=fashiondrop-kenya
+[debug] [2026-06-27T10:02:20.448Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/runtimeconfig.googleapis.com 200
+[debug] [2026-06-27T10:02:20.448Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-06-27T10:02:20.459Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com:enable 200
+[debug] [2026-06-27T10:02:20.460Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudfunctions.googleapis.com:enable [omitted]
+[debug] [2026-06-27T10:02:21.199Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com:enable 200
+[debug] [2026-06-27T10:02:21.199Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/cloudbuild.googleapis.com:enable [omitted]
+[debug] [2026-06-27T10:02:21.331Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com:enable 200
+[debug] [2026-06-27T10:02:21.331Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/fashiondrop-kenya/services/artifactregistry.googleapis.com:enable [omitted]
+[debug] [2026-06-27T10:02:31.343Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:31.344Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:31.344Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/fashiondrop-kenya/adminSdkConfig [none]
+[debug] [2026-06-27T10:02:32.449Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/fashiondrop-kenya/adminSdkConfig 200
+[debug] [2026-06-27T10:02:32.450Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/fashiondrop-kenya/adminSdkConfig {"projectId":"fashiondrop-kenya","storageBucket":"fashiondrop-kenya.firebasestorage.app"}
+[debug] [2026-06-27T10:02:32.450Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:32.451Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:32.451Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/fashiondrop-kenya/configs [none]
+[debug] [2026-06-27T10:02:33.554Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/fashiondrop-kenya/configs 200
+[debug] [2026-06-27T10:02:33.554Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/fashiondrop-kenya/configs {}
+[debug] [2026-06-27T10:02:33.558Z] Validating nodejs source
+[warn] ⚠  functions: Runtime Node.js 20 was deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] ⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2026-06-27T10:02:35.243Z] > [functions] package.json contents: {
+  "name": "fashiondrop-functions",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "deploy": "firebase deploy --only functions"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.9.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2"
+  },
+  "engines": {
+    "node": "20"
+  }
+}
+[debug] [2026-06-27T10:02:35.243Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[info] i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2026-06-27T10:02:35.244Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-06-27T10:02:35.247Z] Found firebase-functions binary at '/home/jane-ngugi/Desktop/fashiondrop-kenya/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8915
+
+[debug] [2026-06-27T10:02:35.440Z] Got response from /__/functions.yaml {"endpoints":{"startFashionDropStkPush":{"platform":"gcfv1","labels":{},"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"callableTrigger":{},"entryPoint":"startFashionDropStkPush"},"fashionDropStkCallback":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"httpsTrigger":{},"entryPoint":"fashionDropStkCallback"}},"specVersion":"v1alpha1","requiredAPIs":[]}
+[debug] [2026-06-27T10:02:39.465Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:39.465Z] Checked if tokens are valid: true, expires at: 1782558108941
+[debug] [2026-06-27T10:02:39.465Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/fashiondrop-kenya/locations/-/functions [none]
