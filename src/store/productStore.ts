@@ -6,6 +6,7 @@ import {
   query,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { normalizeProductCategory } from './categoryStore';
 import type { Product, ProductCategory } from '../types';
 
 interface ProductState {
@@ -29,10 +30,14 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const products = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Product[];
+        const products = snapshot.docs.map((doc) => {
+          const data = doc.data() as Omit<Product, 'id'>;
+          return {
+            id: doc.id,
+            ...data,
+            category: normalizeProductCategory(data.category),
+          };
+        }) as Product[];
         set({ products, loading: false, initialized: true });
       },
       (error) => {

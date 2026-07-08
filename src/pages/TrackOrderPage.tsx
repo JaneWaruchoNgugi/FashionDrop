@@ -84,14 +84,8 @@ export function TrackOrderPage() {
               <span className="order-confirmed__label">Delivering to</span>
               <p>{result.delivery.address}, {result.delivery.town}, {result.delivery.county}</p>
             </div>
-            {result.riderName && (
-              <div>
-                <span className="order-confirmed__label">Rider</span>
-                <p>{result.riderName}</p>
-              </div>
-            )}
             <div>
-              <span className="order-confirmed__label">Total</span>
+              <span className="order-confirmed__label">Item Total</span>
               <p className="mono">{formatKES(result.total)}</p>
             </div>
           </div>

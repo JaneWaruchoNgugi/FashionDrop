@@ -2,6 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { POCHI_NAME, POCHI_NUMBER } from '../lib/payment';
 import { OrderStatusTracker } from '../components/OrderStatusTracker';
 import type { Order } from '../types';
 import './OrderConfirmedPage.css';
@@ -36,10 +37,31 @@ export function OrderConfirmedPage() {
         Order {order?.orderNumber ?? stateOrderNumber ?? '—'}
       </p>
       <p className="order-confirmed__sub">
-        We've got your order. You'll get an SMS update as it moves through each stage.
+        We've got your order. Send your payment via M-Pesa {POCHI_NAME} so we can confirm it and arrange delivery.
       </p>
 
       {order && <OrderStatusTracker status={order.status} />}
+
+      {order && order.status === 'pending_payment' && (
+        <div className="mpesa-instructions" style={{ margin: '24px auto', maxWidth: 680 }}>
+          <p className="mpesa-instructions__lead">Pay via M-Pesa — {POCHI_NAME}</p>
+          <p className="mono mpesa-instructions__number">{POCHI_NUMBER}</p>
+          <p className="mono">Send {formatKES(order.total)} (item total)</p>
+          <p className="mpesa-instructions__hint">
+            Use your order number <strong>{order.orderNumber}</strong> as the M-Pesa reference if asked.
+            Once we receive your payment we'll confirm this order and contact you about the delivery fee
+            (estimated {formatKES(order.deliveryEstimate.min)} - {formatKES(order.deliveryEstimate.max)})
+            before dispatch.
+          </p>
+        </div>
+      )}
+
+      {order && order.status !== 'pending_payment' && order.status !== 'cancelled' && (
+        <div className="mpesa-instructions" style={{ margin: '24px auto', maxWidth: 680 }}>
+          <p className="mpesa-instructions__lead">Payment confirmed ✓</p>
+          <p className="mpesa-instructions__hint">Thanks! We've confirmed your payment and your order is being prepared for delivery.</p>
+        </div>
+      )}
 
       {order && (
         <div className="order-confirmed__details">
@@ -50,10 +72,10 @@ export function OrderConfirmedPage() {
           </div>
           <div>
             <span className="order-confirmed__label">Payment</span>
-            <p>{order.paymentMethod === 'mpesa_manual' ? 'M-Pesa' : 'Pay on Delivery'}</p>
+            <p>{order.paymentStatus === 'paid' ? 'Paid via M-Pesa' : `M-Pesa ${POCHI_NAME}`}</p>
           </div>
           <div>
-            <span className="order-confirmed__label">Total</span>
+            <span className="order-confirmed__label">Item Total</span>
             <p className="mono">{formatKES(order.total)}</p>
           </div>
         </div>

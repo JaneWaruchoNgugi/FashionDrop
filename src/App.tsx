@@ -8,25 +8,34 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderConfirmedPage } from './pages/OrderConfirmedPage';
 import { TrackOrderPage } from './pages/TrackOrderPage';
 import { AdminPage } from './pages/AdminPage';
-import { RiderPage } from './pages/RiderPage';
+import { AccountPage } from './pages/AccountPage';
+import { AuthProvider } from './context/AuthContext';
+import { ScrollToTop } from './components/ScrollToTop';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout>
+    <AuthProvider>
+      <BrowserRouter>
+        <ScrollToTop />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/category/:category" element={<CategoryPage />} />
-          <Route path="/product/:productId" element={<ProductPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order-confirmed/:orderId" element={<OrderConfirmedPage />} />
-          <Route path="/track" element={<TrackOrderPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/rider" element={<RiderPage />} />
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/category/:category" element={<CategoryPage />} />
+                <Route path="/product/:productId" element={<ProductPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/order-confirmed/:orderId" element={<OrderConfirmedPage />} />
+                <Route path="/track" element={<TrackOrderPage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+              </Routes>
+            </Layout>
+          } />
         </Routes>
-      </Layout>
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

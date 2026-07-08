@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useCartStore } from '../store/cartStore';
+import { useAuth } from '../context/AuthContext';
 import { db } from '../lib/firebase';
-import { DELIVERY_AREAS, type DeliveryDetails, type Order, type PaymentMethod } from '../types';
+import { POCHI_NAME, POCHI_NUMBER } from '../lib/payment';
+import { KENYAN_COUNTIES, deliveryBand, type DeliveryDetails, type Order } from '../types';
 import './CheckoutPage.css';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString('en-KE')}`;
 }
 
-const MPESA_PAYMENT_LABEL = import.meta.env.VITE_MPESA_PAYMENT_LABEL ?? 'PAYBILL: 000000';
-
 export function CheckoutPage() {
   const { lines, subtotal, clearCart } = useCartStore();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState<DeliveryDetails>({
@@ -24,17 +25,14 @@ export function CheckoutPage() {
     address: '',
     notes: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pay_on_delivery');
-  const [mpesaCode, setMpesaCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedDeliveryArea = DELIVERY_AREAS.find((area) => area.value === form.county);
-  const deliveryFee = selectedDeliveryArea?.feeMin ?? 0;
-  const deliveryFeeLabel = selectedDeliveryArea
-    ? formatKES(selectedDeliveryArea.feeMin) + ' - ' + formatKES(selectedDeliveryArea.feeMax)
-    : 'Select area';
-  const total = subtotal() + deliveryFee;
+  const items = subtotal();
+  const band = form.county ? deliveryBand(form.county) : null;
+  const deliveryEstimateLabel = band
+    ? `${formatKES(band.min)} - ${formatKES(band.max)}`
+    : 'Select your county';
 
   function update<K extends keyof DeliveryDetails>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -43,12 +41,9 @@ export function CheckoutPage() {
   function validate(): string | null {
     if (!form.fullName.trim()) return 'Enter your full name.';
     if (!/^(07|01)\d{8}$/.test(form.phone.trim())) return 'Enter a valid Kenyan phone number, e.g. 0712345678.';
-    if (!form.county) return 'Select Nairobi CBD or Kiambu for delivery.';
+    if (!form.county) return 'Select your county for delivery.';
     if (!form.town.trim()) return 'Enter your town.';
     if (!form.address.trim()) return 'Enter your delivery address.';
-    if (paymentMethod === 'mpesa_manual' && !mpesaCode.trim()) {
-      return 'Enter your M-Pesa confirmation code.';
-    }
     return null;
   }
 
@@ -66,17 +61,24 @@ export function CheckoutPage() {
       const orderNumber = `FD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const now = Date.now();
 
+      if (!user) throw new Error('Checkout requires a signed-in buyer.');
+
+      const deliveryBandValue = deliveryBand(form.county);
+
       const orderPayload: Omit<Order, 'id'> = {
+        buyerId: user.uid,
+        buyerEmail: user.email || profile?.email || '',
         orderNumber,
         lines,
-        subtotal: subtotal(),
-        deliveryFee,
-        total,
+        subtotal: items,
+        deliveryZone: deliveryBandValue.zone,
+        deliveryEstimate: { min: deliveryBandValue.min, max: deliveryBandValue.max },
+        deliveryFee: 0,
+        total: items, // customer pays the item subtotal now; delivery fee confirmed separately
         delivery: form,
-        paymentMethod,
-        mpesaCode: paymentMethod === 'mpesa_manual' ? mpesaCode.trim() : undefined,
-        status: 'pending',
-        statusHistory: [{ status: 'pending', at: now }],
+        paymentStatus: 'unpaid',
+        status: 'pending_payment',
+        statusHistory: [{ status: 'pending_payment', at: now }],
         createdAt: now,
         updatedAt: now,
       };
@@ -95,6 +97,20 @@ export function CheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (loading) {
+    return <div className="container cart-empty"><p>Loading checkout...</p></div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="container cart-empty">
+        <h1 className="hero__title" style={{ fontSize: 'clamp(28px, 5vw, 44px)' }}>Sign In to Check Out</h1>
+        <p>Create an account so we can save your order and delivery details.</p>
+        <Link to="/account?redirect=/checkout" className="btn btn-primary">Sign In or Create Account</Link>
+      </div>
+    );
   }
 
   if (lines.length === 0) {
@@ -134,17 +150,17 @@ export function CheckoutPage() {
 
             <div className="field-row">
               <label className="field">
-                <span>Delivery Area</span>
+                <span>County</span>
                 <select value={form.county} onChange={(e) => update('county', e.target.value)}>
-                  <option value="">Select delivery area</option>
-                  {DELIVERY_AREAS.map((area) => (
-                    <option key={area.value} value={area.value}>{area.label} ({formatKES(area.feeMin)} - {formatKES(area.feeMax)})</option>
+                  <option value="">Select your county</option>
+                  {KENYAN_COUNTIES.map((county) => (
+                    <option key={county} value={county}>{county}</option>
                   ))}
                 </select>
               </label>
               <label className="field">
                 <span>Town</span>
-                <input value={form.town} onChange={(e) => update('town', e.target.value)} placeholder="e.g. Kimathi Street, Two Rivers, Thindigua" />
+                <input value={form.town} onChange={(e) => update('town', e.target.value)} placeholder="e.g. Westlands, Nakuru CBD, Kisumu" />
               </label>
             </div>
 
@@ -170,44 +186,16 @@ export function CheckoutPage() {
           <section className="checkout-section">
             <h2 className="checkout-section__title">Payment</h2>
 
-            <div className="payment-options">
-              <button
-                type="button"
-                className={`payment-option ${paymentMethod === 'pay_on_delivery' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('pay_on_delivery')}
-              >
-                <span className="payment-option__title">Pay on Delivery</span>
-                <span className="payment-option__desc">Pay cash or M-Pesa when your order arrives</span>
-              </button>
-
-              <button
-                type="button"
-                className={`payment-option ${paymentMethod === 'mpesa_manual' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('mpesa_manual')}
-              >
-                <span className="payment-option__title">M-Pesa Till/Paybill</span>
-                <span className="payment-option__desc">Pay now and enter your confirmation code</span>
-              </button>
+            <div className="mpesa-instructions">
+              <p className="mpesa-instructions__lead">Pay via M-Pesa — {POCHI_NAME}</p>
+              <p className="mono mpesa-instructions__number">{POCHI_NUMBER}</p>
+              <p className="mono">Send {formatKES(items)} (item total)</p>
+              <p className="mpesa-instructions__hint">
+                After you place the order, send the item total to the number above via M-Pesa {POCHI_NAME}.
+                We confirm your payment, then arrange delivery. Your delivery fee ({deliveryEstimateLabel})
+                depends on your location and is confirmed with you separately before dispatch.
+              </p>
             </div>
-
-            {paymentMethod === 'mpesa_manual' && (
-              <div className="mpesa-instructions">
-                <p className="mono">
-                  {MPESA_PAYMENT_LABEL} &nbsp;·&nbsp; ACCOUNT: YOUR ORDER PHONE NUMBER
-                </p>
-                <p className="mpesa-instructions__hint">
-                  Send {formatKES(total)} via M-Pesa, then enter the confirmation code below.
-                </p>
-                <label className="field">
-                  <span>M-Pesa Confirmation Code</span>
-                  <input
-                    value={mpesaCode}
-                    onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. QGH7XJ2KLM"
-                  />
-                </label>
-              </div>
-            )}
           </section>
 
           {error && <p className="checkout-error">{error}</p>}
@@ -223,18 +211,21 @@ export function CheckoutPage() {
           ))}
           <div className="cart-summary__divider" />
           <div className="cart-summary__row">
-            <span>Subtotal</span>
-            <span className="mono">{formatKES(subtotal())}</span>
+            <span>Item Total</span>
+            <span className="mono">{formatKES(items)}</span>
           </div>
           <div className="cart-summary__row">
-            <span>Delivery</span>
-            <span className="mono">{deliveryFeeLabel}</span>
+            <span>Delivery (estimate)</span>
+            <span className="mono">{deliveryEstimateLabel}</span>
           </div>
           <div className="cart-summary__divider" />
           <div className="cart-summary__row cart-summary__row--total">
-            <span>Total</span>
-            <span className="mono">{formatKES(total)}</span>
+            <span>Pay Now via M-Pesa</span>
+            <span className="mono">{formatKES(items)}</span>
           </div>
+          <p className="mpesa-instructions__hint" style={{ marginTop: 6 }}>
+            Delivery fee is confirmed separately and paid before dispatch.
+          </p>
 
           <button type="submit" className="btn btn-primary checkout-submit" disabled={submitting}>
             {submitting ? 'Placing Order…' : 'Place Order'}

@@ -17,14 +17,23 @@ export type StoreCategory = {
 };
 
 export const DEFAULT_CATEGORIES: StoreCategory[] = [
-  { id: 'dresses', value: 'dresses', label: 'Dresses', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'], order: 10 },
-  { id: 'two-pieces', value: 'two-pieces', label: 'Two-Pieces', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'], order: 20 },
-  { id: 'three-pieces', value: 'three-pieces', label: '3 Piece', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'], order: 30 },
-  { id: 'trousers', value: 'trousers', label: 'Trousers', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40'], order: 40 },
-  { id: 'bags', value: 'bags', label: 'Bags', sizes: ['One Size'], order: 50 },
-  { id: 'shoes', value: 'shoes', label: 'Shoes', sizes: ['36', '37', '38', '39', '40', '41', '42'], order: 60 },
-  { id: 'accessories', value: 'accessories', label: 'Accessories', sizes: ['One Size'], order: 70 },
+  { id: 'mens-shoes', value: 'mens-shoes', label: "Men's Shoes", sizes: ['39', '40', '41', '42', '43', '44', '45'], order: 10 },
+  { id: 'womens-shoes', value: 'womens-shoes', label: "Women's Shoes", sizes: ['36', '37', '38', '39', '40', '41', '42'], order: 20 },
+  { id: 'womens-bags', value: 'womens-bags', label: "Women's Bags", sizes: ['One Size'], order: 30 },
 ];
+
+// Maps category slugs from the old catalog onto the current three categories so
+// existing products keep showing after the redesign. Bags are unambiguously
+// women's; the old gender-neutral "shoes" slug maps to women's shoes as a
+// default — re-categorise any men's shoes in the admin dashboard.
+export const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  bags: 'womens-bags',
+  shoes: 'womens-shoes',
+};
+
+export function normalizeProductCategory(value: string): string {
+  return LEGACY_CATEGORY_MAP[value] ?? value;
+}
 
 type CategoryState = {
   categories: StoreCategory[];

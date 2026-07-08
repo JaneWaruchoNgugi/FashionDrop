@@ -1,31 +1,28 @@
 import { useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useProductStore } from '../store/productStore';
+import { useCategoryStore } from '../store/categoryStore';
 import { SEED_PRODUCTS } from '../store/seedData';
 import { ProductCard } from '../components/ProductCard';
-import type { ProductCategory } from '../types';
 import '../pages/HomePage.css';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  dresses: 'Dresses',
-  'two-pieces': 'Two-Pieces',
-  bags: 'Bags',
-  shoes: 'Shoes',
-  accessories: 'Accessories',
-};
 
 export function CategoryPage() {
   const { category } = useParams<{ category: string }>();
   const { products, initialized, subscribe } = useProductStore();
+  const { getByValue, subscribe: subscribeCategories } = useCategoryStore();
 
   useEffect(() => {
-    const unsub = subscribe();
-    return unsub;
-  }, [subscribe]);
+    const unsubProducts = subscribe();
+    const unsubCategories = subscribeCategories();
+    return () => {
+      unsubProducts();
+      unsubCategories();
+    };
+  }, [subscribe, subscribeCategories]);
 
   const list = initialized && products.length > 0 ? products : SEED_PRODUCTS;
-  const filtered = list.filter((p) => p.category === (category as ProductCategory));
-  const label = CATEGORY_LABELS[category ?? ''] ?? 'Shop';
+  const filtered = list.filter((p) => p.category === category);
+  const label = getByValue(category ?? '')?.label ?? 'Shop';
 
   return (
     <section className="container featured-section">

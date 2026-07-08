@@ -8,11 +8,14 @@ import {
   onSnapshot,
   orderBy,
   query,
+  setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { auth, db, storage } from '../lib/firebase';
+import { deleteApp, initializeApp } from 'firebase/app';
+import { auth, db, firebaseConfig, storage } from '../lib/firebase';
+import { DEFAULT_CATEGORIES, normalizeProductCategory, useCategoryStore } from '../store/categoryStore';
 import {
   ORDER_STATUS_LABELS,
   type Order,
@@ -23,8 +26,9 @@ import {
 } from '../types';
 import './AdminPage.css';
 
-const CATEGORIES: ProductCategory[] = ['dresses', 'two-pieces', 'bags', 'shoes', 'accessories'];
-const ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'];
+const ORDER_STATUSES: OrderStatus[] = ['pending_payment', 'paid', 'out_for_delivery', 'delivered', 'cancelled'];
+
+const FALLBACK_SIZE_PRESETS = DEFAULT_CATEGORIES.reduce((acc, category) => ({ ...acc, [category.value]: category.sizes }), {} as Record<string, string[]>);
 
 type AdminView =
   | 'dashboard'
@@ -37,10 +41,18 @@ type AdminView =
   | 'analytics'
   | 'reports'
   | 'deliveries'
-  | 'riders'
   | 'store-settings'
   | 'payment-settings'
   | 'users';
+
+type AdminUser = {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  createdAt?: number;
+  createdBy?: string;
+};
 
 type ProductForm = {
   name: string;
@@ -56,7 +68,7 @@ type ProductForm = {
 
 const blankForm: ProductForm = {
   name: '',
-  category: 'dresses',
+  category: 'mens-shoes',
   price: '',
   compareAtPrice: '',
   description: '',
@@ -82,7 +94,6 @@ const navGroups: { title: string; items: { view: AdminView; label: string; icon:
   ] },
   { title: 'Delivery', items: [
     { view: 'deliveries', label: 'Deliveries', icon: '▱' },
-    { view: 'riders', label: 'Riders', icon: '◇' },
   ] },
   { title: 'Settings', items: [
     { view: 'store-settings', label: 'Store Settings', icon: '⚙' },
@@ -102,6 +113,11 @@ function formatDate(value: unknown) {
     return value.toDate().toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' });
   }
   return 'Today';
+}
+
+function parseAmount(value: string) {
+  const amount = Number(String(value).replace(/[^0-9.]/g, ''));
+  return Number.isFinite(amount) ? amount : 0;
 }
 
 function parseProductImage(entry: string) {
@@ -135,6 +151,32 @@ function parseVariants(raw: string): ProductVariant[] {
       return { size, color, colorHex: colorHex || '#111111', stock: Number(stock || 0) };
     })
     .filter((variant) => variant.size && variant.color && Number.isFinite(variant.stock));
+}
+
+function uniqueVariantColors(variants: ProductVariant[], fallbackColor: string, fallbackHex: string) {
+  const colors = new Map<string, string>();
+  variants.forEach((variant) => {
+    if (variant.color) colors.set(variant.color, variant.colorHex || '#111111');
+  });
+  if (colors.size === 0) colors.set(fallbackColor || 'Default', fallbackHex || '#111111');
+  return Array.from(colors.entries());
+}
+
+function selectedVariantSizes(raw: string) {
+  return Array.from(new Set(parseVariants(raw).map((variant) => variant.size)));
+}
+
+function buildVariantsForSizes(raw: string, sizes: string[], fallbackColor: string, fallbackHex: string) {
+  const current = parseVariants(raw);
+  const colors = uniqueVariantColors(current, fallbackColor, fallbackHex);
+  const rows: ProductVariant[] = [];
+  sizes.forEach((size) => {
+    colors.forEach(([color, colorHex]) => {
+      const existing = current.find((variant) => variant.size === size && variant.color === color);
+      rows.push(existing ?? { size, color, colorHex, stock: 5 });
+    });
+  });
+  return rows.map((variant) => variant.size + ',' + variant.color + ',' + variant.colorHex + ',' + variant.stock).join('\n');
 }
 
 function productToForm(product: Product): ProductForm {
@@ -187,8 +229,14 @@ export function AdminPage() {
   const [uploadHex, setUploadHex] = useState("#c9a58f");
   const [uploadingImages, setUploadingImages] = useState(false);
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
+  const [categoryForm, setCategoryForm] = useState({ label: '', sizes: 'XS,S,M,L,XL' });
   const [search, setSearch] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '' });
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [adminMessage, setAdminMessage] = useState<string | null>(null);
+  const { categories, subscribe: subscribeCategories } = useCategoryStore();
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (currentUser) => {
@@ -213,19 +261,28 @@ export function AdminPage() {
 
   useEffect(() => {
     if (!user || !isAdmin) return;
+    const unsubscribeCategories = subscribeCategories();
     const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
-      setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Product)));
+      setProducts(snapshot.docs.map((item) => {
+        const data = item.data() as Omit<Product, 'id'>;
+        return { id: item.id, ...data, category: normalizeProductCategory(data.category) } as Product;
+      }));
     });
     const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
       setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Order)));
     });
+    const unsubscribeAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
+      setAdminUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as AdminUser)));
+    }, (error) => console.warn('Could not read admin users:', error));
     return () => {
       unsubscribeProducts();
       unsubscribeOrders();
+      unsubscribeAdmins();
+      unsubscribeCategories();
     };
-  }, [user, isAdmin]);
+  }, [user, isAdmin, subscribeCategories]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -240,16 +297,19 @@ export function AdminPage() {
   }, [orders, search]);
 
   const customers = useMemo(() => {
-    const map = new Map<string, { name: string; phone: string; county: string; orders: number; spent: number }>();
+    const map = new Map<string, { name: string; phone: string; county: string; orders: number; spent: number; orderIds: string[] }>();
     orders.forEach((order) => {
       const key = order.delivery.phone;
-      const existing = map.get(key) ?? { name: order.delivery.fullName, phone: key, county: order.delivery.county, orders: 0, spent: 0 };
+      const existing = map.get(key) ?? { name: order.delivery.fullName, phone: key, county: order.delivery.county, orders: 0, spent: 0, orderIds: [] };
       existing.orders += 1;
       existing.spent += order.total || 0;
+      existing.orderIds.push(order.id);
       map.set(key, existing);
     });
     return Array.from(map.values()).sort((a, b) => b.spent - a.spent);
   }, [orders]);
+
+  type CustomerRow = (typeof customers)[number];
 
   const dashboard = useMemo(() => {
     const revenue = orders.reduce((total, order) => total + (order.total || 0), 0);
@@ -267,6 +327,25 @@ export function AdminPage() {
     return { revenue, statusCounts, topProducts, lowStock };
   }, [orders, products]);
 
+  const selectedSizes = useMemo(() => selectedVariantSizes(form.variants), [form.variants]);
+  const sizeOptions = categories.find((category) => category.value === form.category)?.sizes ?? FALLBACK_SIZE_PRESETS[form.category] ?? ['One Size'];
+
+  function applySizes(sizes: string[]) {
+    setForm((value) => ({
+      ...value,
+      variants: buildVariantsForSizes(value.variants, sizes, uploadColor, uploadHex),
+    }));
+  }
+
+  function handleCategoryChange(category: ProductCategory) {
+    const nextSizes = categories.find((item) => item.value === category)?.sizes ?? FALLBACK_SIZE_PRESETS[category] ?? ['One Size'];
+    setForm((value) => ({
+      ...value,
+      category,
+      variants: buildVariantsForSizes(value.variants, nextSizes.slice(0, 1), uploadColor, uploadHex),
+    }));
+  }
+
   const variantColorOptions = useMemo(() => {
     const variants = parseVariants(form.variants);
     const seen = new Map<string, string>();
@@ -275,6 +354,39 @@ export function AdminPage() {
     });
     return Array.from(seen.entries()).map(([color, colorHex]) => ({ color, colorHex }));
   }, [form.variants]);
+
+  const productColor = variantColorOptions[0] ?? { color: uploadColor || 'Default', colorHex: uploadHex };
+
+  function variantsToText(rows: ProductVariant[]) {
+    return rows.map((v) => `${v.size},${v.color},${v.colorHex},${v.stock}`).join('\n');
+  }
+
+  function toggleSize(size: string) {
+    const next = selectedSizes.includes(size)
+      ? selectedSizes.filter((s) => s !== size)
+      : [...selectedSizes, size];
+    applySizes(next);
+  }
+
+  function sizeStockValue(size: string) {
+    const row = parseVariants(form.variants).find((v) => v.size === size);
+    return row ? row.stock : 5;
+  }
+
+  function setSizeStock(size: string, stock: number) {
+    const value = Number.isFinite(stock) ? Math.max(stock, 0) : 0;
+    const rows = parseVariants(form.variants).map((v) => (v.size === size ? { ...v, stock: value } : v));
+    setForm((current) => ({ ...current, variants: variantsToText(rows) }));
+  }
+
+  function setProductColor(color: string, colorHex: string) {
+    const name = color.trim() || 'Default';
+    const bySize = new Map<string, ProductVariant>();
+    parseVariants(form.variants).forEach((v) => bySize.set(v.size, { ...v, color: name, colorHex }));
+    setForm((current) => ({ ...current, variants: variantsToText(Array.from(bySize.values())) }));
+    setUploadColor(name);
+    setUploadHex(colorHex);
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -285,6 +397,35 @@ export function AdminPage() {
       console.error('Admin login failed:', error);
       setAuthError('Login failed. Check the admin email and password.');
     }
+  }
+
+  function categorySlug(label: string) {
+    return label
+      .trim()
+      .toLowerCase()
+      .split("")
+      .map((char) => ((char >= "a" && char <= "z") || (char >= "0" && char <= "9") ? char : "-"))
+      .join("")
+      .split("-")
+      .filter(Boolean)
+      .join("-");
+  }
+  async function saveCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const label = categoryForm.label.trim();
+    const value = categorySlug(label);
+    const sizes = categoryForm.sizes.split(',').map((size) => size.trim()).filter(Boolean);
+    if (!label || !value) { setMessage('Enter a category name.'); return; }
+    await setDoc(doc(db, 'categories', value), { value, label, sizes: sizes.length > 0 ? sizes : ['One Size'], order: categories.length > 0 ? Math.max(...categories.map((category) => category.order || 0)) + 10 : 10, updatedAt: Date.now() }, { merge: true });
+    setCategoryForm({ label: '', sizes: 'XS,S,M,L,XL' });
+    setMessage('Category saved.');
+  }
+
+  async function removeCategory(value: string) {
+    const productCount = products.filter((product) => product.category === value).length;
+    if (productCount > 0) { setMessage('Move or delete products in this category before removing it.'); return; }
+    await setDoc(doc(db, 'categories', value), { value, disabled: true, updatedAt: Date.now() }, { merge: true });
+    setMessage('Category removed.');
   }
 
   async function handleImageFiles(files: FileList | File[]) {
@@ -336,17 +477,21 @@ export function AdminPage() {
     setMessage(null);
     const variants = parseVariants(form.variants);
     const images = imageEntries(form.images);
-    if (!form.name.trim() || !form.description.trim() || (images.length < 1 || images.length > 4) || variants.length === 0 || !Number(form.price)) {
-      setMessage('Add name, price, description, 1 to 4 images, and at least one valid variant.');
-      setSaving(false);
-      return;
-    }
+    const price = parseAmount(form.price);
+    const compareAtPrice = form.compareAtPrice ? parseAmount(form.compareAtPrice) : undefined;
+
+    const fail = (reason: string) => { setMessage(reason); setSaving(false); };
+    if (!form.name.trim()) return fail('Enter a product name.');
+    if (!price) return fail('Enter a valid price, e.g. 1299.');
+    if (!form.description.trim()) return fail('Add a short description.');
+    if (variants.length === 0) return fail('Tap at least one size in "Sizes & stock".');
+    if (images.length < 1 || images.length > 4) return fail('Add between 1 and 4 photos.');
 
     const productPayload = {
       name: form.name.trim(),
       category: form.category,
-      price: Number(form.price),
-      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
+      price,
+      compareAtPrice: compareAtPrice || undefined,
       description: form.description.trim(),
       images,
       variants,
@@ -376,11 +521,87 @@ export function AdminPage() {
 
   async function updateOrderStatus(order: Order, status: OrderStatus) {
     const now = Date.now();
+    // Confirming payment (or any post-payment stage) marks the order paid;
+    // reverting to pending marks it unpaid; cancelling keeps the prior state.
+    const paymentStatus =
+      status === 'pending_payment' ? 'unpaid'
+        : status === 'cancelled' ? order.paymentStatus
+          : 'paid';
     await updateDoc(doc(db, 'orders', order.id), {
       status,
+      paymentStatus,
       updatedAt: now,
       statusHistory: [...(order.statusHistory || []), { status, at: now }],
     });
+  }
+
+  async function deleteOrder(order: Order) {
+    if (!window.confirm(`Delete order ${order.orderNumber}? This cannot be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, 'orders', order.id));
+    } catch (error) {
+      console.error('Delete order failed:', error);
+      setMessage('Could not delete the order. Check Firestore permissions.');
+    }
+  }
+
+  async function deleteCustomer(customer: CustomerRow) {
+    if (!window.confirm(`Delete ${customer.name} and their ${customer.orders} order(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(customer.orderIds.map((id) => deleteDoc(doc(db, 'orders', id))));
+    } catch (error) {
+      console.error('Delete customer failed:', error);
+      setMessage('Could not delete the customer. Check Firestore permissions.');
+    }
+  }
+
+  async function addAdminUser(e: React.FormEvent) {
+    e.preventDefault();
+    const email = adminForm.email.trim().toLowerCase();
+    const name = adminForm.name.trim();
+    const password = adminForm.password;
+    setAdminMessage(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAdminMessage('Enter a valid email address.'); return; }
+    if (password.length < 6) { setAdminMessage('Password must be at least 6 characters.'); return; }
+
+    setCreatingAdmin(true);
+    // Create the auth account on a SECONDARY app so the current admin stays signed in.
+    const secondaryApp = initializeApp(firebaseConfig, `admin-creator-${Date.now()}`);
+    try {
+      const secondaryAuth = getAuth(secondaryApp);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      await setDoc(doc(db, 'admins', cred.user.uid), {
+        email,
+        name: name || email,
+        role: 'admin',
+        createdAt: Date.now(),
+        createdBy: user?.email ?? '',
+      });
+      await signOut(secondaryAuth);
+      setAdminForm({ name: '', email: '', password: '' });
+      setAdminMessage(`Admin ${email} added. They can sign in at /admin with this password.`);
+    } catch (error) {
+      console.error('Add admin failed:', error);
+      const code = (error as { code?: string }).code ?? '';
+      if (code === 'auth/email-already-in-use') setAdminMessage('That email already has an account.');
+      else if (code === 'auth/weak-password') setAdminMessage('Password is too weak — use at least 6 characters.');
+      else setAdminMessage('Could not add the admin. Check the details and try again.');
+    } finally {
+      await deleteApp(secondaryApp).catch(() => undefined);
+      setCreatingAdmin(false);
+    }
+  }
+
+  async function removeAdmin(admin: AdminUser) {
+    if (admin.id === user?.uid) { setAdminMessage("You can't remove your own admin access."); return; }
+    if (!window.confirm(`Remove admin access for ${admin.email}? Their login stays but they lose the dashboard.`)) return;
+    try {
+      await deleteDoc(doc(db, 'admins', admin.id));
+      setAdminMessage(`Removed admin access for ${admin.email}.`);
+    } catch (error) {
+      console.error('Remove admin failed:', error);
+      setAdminMessage('Could not remove this admin. Check Firestore permissions.');
+    }
   }
 
   function startEdit(product: Product) {
@@ -469,7 +690,6 @@ export function AdminPage() {
           {activeView === 'analytics' && renderAnalytics()}
           {activeView === 'reports' && renderReports()}
           {activeView === 'deliveries' && renderDeliveries()}
-          {activeView === 'riders' && renderRiders()}
           {activeView === 'store-settings' && renderStoreSettings()}
           {activeView === 'payment-settings' && renderPaymentSettings()}
           {activeView === 'users' && renderUsers()}
@@ -507,59 +727,104 @@ export function AdminPage() {
       <>
         {renderPageHeader('Products', 'Manage product catalog, stock, images, and product flags.', <button className="admin-primary" onClick={() => { setEditingId(null); setForm(blankForm); }}>+ Add Product</button>)}
         <section className="admin-two-col">
-          <form className="admin-card admin-form" onSubmit={handleProductSave}>
+          <form className="admin-card admin-form admin-product-form" onSubmit={handleProductSave}>
             <h2>{editingId ? 'Edit Product' : 'Add Product'}</h2>
-            <label className="admin-field"><span>Name</span><input value={form.name} onChange={(e) => setForm((value) => ({ ...value, name: e.target.value }))} /></label>
-            <div className="admin-field-row"><label className="admin-field"><span>Category</span><select value={form.category} onChange={(e) => setForm((value) => ({ ...value, category: e.target.value as ProductCategory }))}>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label><label className="admin-field"><span>Price</span><input value={form.price} onChange={(e) => setForm((value) => ({ ...value, price: e.target.value }))} inputMode="numeric" /></label></div>
-            <label className="admin-field"><span>Compare At Price</span><input value={form.compareAtPrice} onChange={(e) => setForm((value) => ({ ...value, compareAtPrice: e.target.value }))} inputMode="numeric" /></label>
-            <label className="admin-field"><span>Description</span><textarea value={form.description} onChange={(e) => setForm((value) => ({ ...value, description: e.target.value }))} /></label>
-            <div className="admin-image-manager">
-              <div className="admin-color-upload-row">
-                <label className="admin-field"><span>Upload Color Name</span><input value={uploadColor} onChange={(e) => setUploadColor(e.target.value)} placeholder="Blue, Red, Beige..." /></label>
-                <label className="admin-field admin-color-picker"><span>Pick Color</span><input type="color" value={uploadHex} onChange={(e) => setUploadHex(e.target.value)} /></label>
-                <label className="admin-field"><span>Image Files</span><input type="file" accept="image/*" multiple onChange={(e) => e.target.files && handleImageFiles(e.target.files)} /></label>
+
+            <div className="admin-step">
+              <p className="admin-step__title"><span>1</span> Product details</p>
+              <label className="admin-field"><span>Name</span><input value={form.name} onChange={(e) => setForm((value) => ({ ...value, name: e.target.value }))} placeholder="e.g. Jabari Leather Derby" /></label>
+              <div className="admin-field-row">
+                <label className="admin-field"><span>Category</span><select value={form.category} onChange={(e) => handleCategoryChange(e.target.value as ProductCategory)}>{categories.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
+                <label className="admin-field"><span>Price (KES)</span><input value={form.price} onChange={(e) => setForm((value) => ({ ...value, price: e.target.value }))} inputMode="numeric" placeholder="0" /></label>
               </div>
-              <div className="admin-color-wheel">
-                {variantColorOptions.map((option) => (
-                  <button
-                    type="button"
-                    key={option.color}
-                    style={{ background: option.colorHex }}
-                    title={option.color}
-                    onClick={() => { setUploadColor(option.color); setUploadHex(option.colorHex); }}
-                  >
-                    <span>{option.color}</span>
-                  </button>
-                ))}
+              <label className="admin-field"><span>Old price — optional, shows a discount</span><input value={form.compareAtPrice} onChange={(e) => setForm((value) => ({ ...value, compareAtPrice: e.target.value }))} inputMode="numeric" placeholder="Leave blank if no discount" /></label>
+              <label className="admin-field"><span>Description</span><textarea value={form.description} onChange={(e) => setForm((value) => ({ ...value, description: e.target.value }))} placeholder="Materials, fit, what's included…" /></label>
+            </div>
+
+            <div className="admin-step">
+              <p className="admin-step__title"><span>2</span> Colour</p>
+              <div className="admin-field-row">
+                <label className="admin-field"><span>Colour name</span><input value={productColor.color} onChange={(e) => setProductColor(e.target.value, productColor.colorHex)} placeholder="Black, Tan, Beige…" /></label>
+                <label className="admin-field admin-color-picker"><span>Swatch</span><input type="color" value={productColor.colorHex} onChange={(e) => setProductColor(productColor.color, e.target.value)} /></label>
               </div>
+            </div>
+
+            <div className="admin-step">
+              <p className="admin-step__title"><span>3</span> Sizes &amp; stock</p>
+              <div className="admin-field">
+                <span>Tap the sizes you have</span>
+                <div className="admin-size-chips">
+                  {sizeOptions.map((size) => (
+                    <button type="button" key={size} className={`admin-chip ${selectedSizes.includes(size) ? 'is-active' : ''}`} onClick={() => toggleSize(size)}>{size}</button>
+                  ))}
+                </div>
+              </div>
+              {selectedSizes.length > 0 && (
+                <div className="admin-field">
+                  <span>How many in stock?</span>
+                  <div className="admin-stock-grid">
+                    {selectedSizes.map((size) => (
+                      <label className="admin-stock-cell" key={size}>
+                        <b>{size}</b>
+                        <input type="number" min={0} value={sizeStockValue(size)} onChange={(e) => setSizeStock(size, Number(e.target.value))} />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="admin-step">
+              <p className="admin-step__title"><span>4</span> Photos <em>1–4</em></p>
               <div
                 className="admin-dropzone"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); handleImageFiles(e.dataTransfer.files); }}
               >
-                <strong>{uploadingImages ? "Uploading images..." : "Drag product images here"}</strong>
-                <span>Minimum 1 image, maximum 4. Set the color before upload to link that image to a color.</span>
+                <strong>{uploadingImages ? 'Uploading photos…' : 'Drag photos here'}</strong>
+                <span>Or use the button below. New photos use the colour above.</span>
+                <label className="admin-upload-btn">
+                  Choose photos
+                  <input type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && handleImageFiles(e.target.files)} />
+                </label>
               </div>
-              <div className="admin-current-photos-head">Current Photos <span>Tap x to delete, edit color below each image</span></div>
-              <div className="admin-image-preview-grid">
+              {imageEntries(form.images).length > 0 && (
+                <div className="admin-photo-grid">
+                  {imageEntries(form.images).map((entry, index) => {
+                    const image = parseProductImage(entry);
+                    return (
+                      <div className="admin-photo" key={`${image.url}-${index}`}>
+                        <button className="admin-image-remove" type="button" onClick={() => removeImage(index)} aria-label="Remove photo">×</button>
+                        <img src={image.url} alt="" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="admin-checks"><label><input type="checkbox" checked={form.isNewDrop} onChange={(e) => setForm((value) => ({ ...value, isNewDrop: e.target.checked }))} /> New drop</label><label><input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((value) => ({ ...value, isFeatured: e.target.checked }))} /> Featured</label></div>
+
+            <details className="admin-advanced">
+              <summary>Advanced (colours per photo &amp; manual entry)</summary>
+              <div className="admin-photo-grid admin-photo-grid--colors">
                 {imageEntries(form.images).map((entry, index) => {
                   const image = parseProductImage(entry);
                   return (
-                    <article key={`${image.url}-${index}`}>
-                      <button className="admin-image-remove" type="button" onClick={() => removeImage(index)} aria-label="Remove image">×</button>
+                    <div className="admin-photo" key={`c-${image.url}-${index}`}>
                       <img src={image.url} alt="" />
                       <div className="admin-image-color-chip" style={{ background: image.colorHex }} />
-                      <input value={image.color} onChange={(e) => updateImageColor(index, e.target.value)} aria-label="Image color" />
-                    </article>
+                      <input value={image.color} onChange={(e) => updateImageColor(index, e.target.value)} aria-label="Photo colour" />
+                    </div>
                   );
                 })}
               </div>
-              <label className="admin-field"><span>Image URL fallback: Color|URL, one per line</span><textarea value={form.images} onChange={(e) => setForm((value) => ({ ...value, images: e.target.value }))} /></label>
-            </div>
-            <label className="admin-field"><span>Variants: size,color,#hex,stock</span><textarea value={form.variants} onChange={(e) => setForm((value) => ({ ...value, variants: e.target.value }))} /></label>
-            <div className="admin-checks"><label><input type="checkbox" checked={form.isNewDrop} onChange={(e) => setForm((value) => ({ ...value, isNewDrop: e.target.checked }))} /> New drop</label><label><input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((value) => ({ ...value, isFeatured: e.target.checked }))} /> Featured</label></div>
+              <label className="admin-field"><span>Image URLs — Color|URL, one per line</span><textarea value={form.images} onChange={(e) => setForm((value) => ({ ...value, images: e.target.value }))} /></label>
+              <label className="admin-field"><span>Variants — size,color,#hex,stock</span><textarea value={form.variants} onChange={(e) => setForm((value) => ({ ...value, variants: e.target.value }))} /></label>
+            </details>
+
             {message && <p className="admin-message">{message}</p>}
-            <div className="admin-actions-row"><button className="admin-primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Product'}</button>{editingId && <button className="admin-secondary" type="button" onClick={() => { setEditingId(null); setForm(blankForm); }}>Cancel</button>}</div>
+            <div className="admin-actions-row"><button className="admin-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Product'}</button>{editingId && <button className="admin-secondary" type="button" onClick={() => { setEditingId(null); setForm(blankForm); }}>Cancel</button>}</div>
           </form>
           <section className="admin-card"><h2>Product Inventory</h2><ProductsTable /></section>
         </section>
@@ -568,7 +833,34 @@ export function AdminPage() {
   }
 
   function renderCategories() {
-    return <>{renderPageHeader('Categories', 'Organize products by storefront category.')}<section className="admin-metric-list">{CATEGORIES.map((category) => <article className="admin-card admin-category-card" key={category}><strong>{category}</strong><span>{products.filter((product) => product.category === category).length} products</span><button onClick={() => setActiveView('products')}>Manage</button></article>)}</section></>;
+    return (
+      <>
+        {renderPageHeader('Categories', 'Add, remove, and manage storefront categories without editing code.')}
+        <section className="admin-card admin-form">
+          <h2>Add Category</h2>
+          <form onSubmit={saveCategory}>
+            <div className="admin-field-row">
+              <label className="admin-field"><span>Category Name</span><input value={categoryForm.label} onChange={(e) => setCategoryForm((value) => ({ ...value, label: e.target.value }))} placeholder="e.g. Denim, Blazers, Swimwear" /></label>
+              <label className="admin-field"><span>Sizes</span><input value={categoryForm.sizes} onChange={(e) => setCategoryForm((value) => ({ ...value, sizes: e.target.value }))} placeholder="S,M,L,XL or One Size" /></label>
+            </div>
+            <button className="admin-primary" type="submit">Save Category</button>
+          </form>
+        </section>
+        <section className="admin-metric-list">
+          {categories.map((category) => {
+            const productCount = products.filter((product) => product.category === category.value).length;
+            return (
+              <article className="admin-card admin-category-card" key={category.value}>
+                <strong>{category.label}</strong>
+                <span>{productCount} products · {category.sizes.join(', ')}</span>
+                <button onClick={() => setActiveView('products')}>Manage</button>
+                <button className="danger" onClick={() => removeCategory(category.value)} disabled={productCount > 0}>Remove</button>
+              </article>
+            );
+          })}
+        </section>
+      </>
+    );
   }
 
   function renderOrders() {
@@ -596,26 +888,54 @@ export function AdminPage() {
   }
 
   function renderDeliveries() {
-    const deliveryOrders = orders.filter((order) => ['packed', 'out_for_delivery', 'delivered'].includes(order.status));
+    const deliveryOrders = orders.filter((order) => ['out_for_delivery', 'delivered'].includes(order.status));
     return <>{renderPageHeader('Deliveries', 'Track parcels moving from packing to doorstep.')}<section className="admin-card"><OrdersTable source={deliveryOrders} /></section></>;
   }
 
-  function renderRiders() {
-    const riderNames = Array.from(new Set(orders.map((order) => order.riderName).filter(Boolean)));
-    return <>{renderPageHeader('Riders', 'Delivery partners assigned to orders.')}<section className="admin-metric-list">{riderNames.length ? riderNames.map((name) => <InfoCard key={name} title={String(name)} value={String(orders.filter((order) => order.riderName === name).length)} note="Assigned deliveries" />) : <InfoCard title="No Riders Yet" value="0" note="Assign riders when delivery workflow starts" />}</section></>;
-  }
-
   function renderStoreSettings() {
-    return <>{renderPageHeader('Store Settings', 'Brand, storefront, and fulfillment defaults.')}<section className="admin-card admin-settings-grid"><InfoCard title="Store Name" value="FashionDrop Kenya" note="Visible across admin and storefront" /><InfoCard title="Theme" value="Pink Admin" note="Dashboard design system active" /><InfoCard title="Delivery" value="CBD + Kiambu" note="CBD KES 250-350, Kiambu KES 400-500" /></section></>;
+    return <>{renderPageHeader('Store Settings', 'Brand, storefront, and fulfillment defaults.')}<section className="admin-card admin-settings-grid"><InfoCard title="Store Name" value="FashionDrop Kenya" note="Visible across admin and storefront" /><InfoCard title="Theme" value="Pink Admin" note="Dashboard design system active" /><InfoCard title="Delivery" value="Nationwide" note="Nairobi KES 100-200, rest of Kenya KES 200-500" /></section></>;
   }
 
   function renderPaymentSettings() {
-    return <>{renderPageHeader('Payment Settings', 'M-Pesa manual payment and pay-on-delivery controls.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Manual" note="Confirmation code captured at checkout" /><InfoCard title="Pay on Delivery" value="Enabled" note="Cash or M-Pesa on arrival" /><InfoCard title="Delivery Fee" value="CBD 250-350 / Kiambu 400-500" note="Configured by delivery area" /></section></>;
+    return <>{renderPageHeader('Payment Settings', 'Manual M-Pesa Pochi La Biashara payment.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Pochi La Biashara" note="Customer pays item total, owner confirms here" /><InfoCard title="Pochi Number" value="0791847766" note="Set VITE_POCHI_NUMBER to override" /><InfoCard title="Delivery Fee" value="Nairobi 100-200 / Rest 200-500" note="Confirmed with customer per order" /></section></>;
   }
 
   function renderUsers() {
     const currentUser = user!;
-    return <>{renderPageHeader('Users', 'Admin account and role access.')}<section className="admin-card"><div className="admin-user-row"><div className="admin-avatar">{(currentUser.email?.[0] ?? 'A').toUpperCase()}</div><div><strong>{currentUser.email}</strong><span>Super Admin</span><small>{currentUser.uid}</small></div><button className="admin-secondary" onClick={() => signOut(auth)}>Sign Out</button></div></section></>;
+    const otherAdmins = adminUsers.filter((admin) => admin.id !== currentUser.uid);
+    return (
+      <>
+        {renderPageHeader('Users', 'Admins who can manage the store on your behalf.')}
+        <section className="admin-two-col">
+          <div className="admin-card">
+            <h2>Admin Users</h2>
+            <div className="admin-user-row">
+              <div className="admin-avatar">{(currentUser.email?.[0] ?? 'A').toUpperCase()}</div>
+              <div><strong>{currentUser.email}</strong><span>You · Super Admin</span><small>{currentUser.uid}</small></div>
+              <button className="admin-secondary" type="button" onClick={() => signOut(auth)}>Sign Out</button>
+            </div>
+            {otherAdmins.map((admin) => (
+              <div className="admin-user-row" key={admin.id}>
+                <div className="admin-avatar">{(admin.name?.[0] ?? admin.email?.[0] ?? 'A').toUpperCase()}</div>
+                <div><strong>{admin.name || admin.email}</strong><span>{admin.email}</span><small>{admin.createdAt ? `Added ${formatDate(admin.createdAt)}` : 'Admin'}</small></div>
+                <button className="admin-delete-btn" type="button" onClick={() => removeAdmin(admin)}>Remove</button>
+              </div>
+            ))}
+            {otherAdmins.length === 0 && <p className="admin-help" style={{ marginTop: 12 }}>No other admins yet. Add one using the form.</p>}
+          </div>
+
+          <form className="admin-card admin-form" onSubmit={addAdminUser}>
+            <h2>Add Admin</h2>
+            <p className="admin-help">They can sign in at <b>/admin</b> and update orders on your behalf. Share the email and password with them.</p>
+            <label className="admin-field"><span>Name</span><input value={adminForm.name} onChange={(e) => setAdminForm((v) => ({ ...v, name: e.target.value }))} placeholder="e.g. Jane" /></label>
+            <label className="admin-field"><span>Email</span><input type="email" value={adminForm.email} onChange={(e) => setAdminForm((v) => ({ ...v, email: e.target.value }))} placeholder="admin@email.com" /></label>
+            <label className="admin-field"><span>Temporary password</span><input value={adminForm.password} onChange={(e) => setAdminForm((v) => ({ ...v, password: e.target.value }))} placeholder="At least 6 characters" /></label>
+            {adminMessage && <p className="admin-note">{adminMessage}</p>}
+            <div className="admin-actions-row"><button className="admin-primary" type="submit" disabled={creatingAdmin}>{creatingAdmin ? 'Adding…' : 'Add Admin'}</button></div>
+          </form>
+        </section>
+      </>
+    );
   }
 
   function ProductsTable() {
@@ -624,11 +944,11 @@ export function AdminPage() {
 
   function OrdersTable({ compact = false, source = filteredOrders }: { compact?: boolean; source?: Order[] }) {
     const rows = compact ? source.slice(0, 5) : source;
-    return <div className="admin-order-list"><div className="admin-order-list__head"><span>Order</span><span>Customer</span><span>Amount</span><span>Status</span><span>Date</span></div>{rows.map((order) => <article key={order.id}><strong className="mono">#{order.orderNumber.replace('FD-', '')}</strong><span>{order.delivery.fullName}</span><span>{formatKES(order.total)}</span>{compact ? <em className={statusClass(order.status)}>{ORDER_STATUS_LABELS[order.status]}</em> : <select value={order.status} onChange={(e) => updateOrderStatus(order, e.target.value as OrderStatus)}>{ORDER_STATUSES.map((status) => <option key={status} value={status}>{ORDER_STATUS_LABELS[status]}</option>)}</select>}<span>{formatDate(order.createdAt)}</span></article>)}</div>;
+    return <div className={`admin-order-list ${compact ? '' : 'admin-order-list--actions'}`}><div className="admin-order-list__head"><span>Order</span><span>Customer</span><span>Amount</span><span>Status</span><span>Date</span>{!compact && <span>Action</span>}</div>{rows.map((order) => <article key={order.id}><strong className="mono">#{order.orderNumber.replace('FD-', '')}</strong><span>{order.delivery.fullName}</span><span>{formatKES(order.total)}</span>{compact ? <em className={statusClass(order.status)}>{ORDER_STATUS_LABELS[order.status]}</em> : <select value={order.status} onChange={(e) => updateOrderStatus(order, e.target.value as OrderStatus)}>{ORDER_STATUSES.map((status) => <option key={status} value={status}>{ORDER_STATUS_LABELS[status]}</option>)}</select>}<span>{formatDate(order.createdAt)}</span>{!compact && <button className="admin-delete-btn" type="button" onClick={() => deleteOrder(order)}>Delete</button>}</article>)}</div>;
   }
 
   function CustomersTable() {
-    return <div className="admin-order-list"><div className="admin-order-list__head"><span>Customer</span><span>Phone</span><span>County</span><span>Orders</span><span>Spent</span></div>{customers.map((customer) => <article key={customer.phone}><strong>{customer.name}</strong><span>{customer.phone}</span><span>{customer.county}</span><span>{customer.orders}</span><span>{formatKES(customer.spent)}</span></article>)}</div>;
+    return <div className="admin-order-list admin-order-list--actions"><div className="admin-order-list__head"><span>Customer</span><span>Phone</span><span>County</span><span>Orders</span><span>Spent</span><span>Action</span></div>{customers.map((customer) => <article key={customer.phone}><strong>{customer.name}</strong><span>{customer.phone}</span><span>{customer.county}</span><span>{customer.orders}</span><span>{formatKES(customer.spent)}</span><button className="admin-delete-btn" type="button" onClick={() => deleteCustomer(customer)}>Delete</button></article>)}</div>;
   }
 
   function TopProducts() {

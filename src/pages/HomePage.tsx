@@ -1,27 +1,33 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Shirt, Handbag, Footprints, Gem, Sparkles } from 'lucide-react';
+import { Shirt, Handbag, Footprints, Gem, Sparkles, type LucideIcon } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
+import { useCategoryStore } from '../store/categoryStore';
 import { SEED_PRODUCTS } from '../store/seedData';
 import { ProductCard } from '../components/ProductCard';
 import { ImageLoader } from '../components/ImageLoader';
 import './HomePage.css';
 import heroIMG from "../Assets/hero-image.png"
-const CATEGORY_TILES = [
-  { label: 'Dresses', value: 'dresses', Icon: Shirt },
-  { label: 'Two-Pieces', value: 'two-pieces', Icon: Sparkles },
-  { label: 'Bags', value: 'bags', Icon: Handbag },
-  { label: 'Shoes', value: 'shoes', Icon: Footprints },
-  { label: 'Accessories', value: 'accessories', Icon: Gem },
-];
+function categoryIcon(value: string): LucideIcon {
+  if (value.includes('shoe')) return Footprints;
+  if (value.includes('bag')) return Handbag;
+  if (value.includes('accessor') || value.includes('jewel')) return Gem;
+  if (value.includes('piece')) return Sparkles;
+  return Shirt;
+}
 
 export function HomePage() {
   const { products, initialized, subscribe } = useProductStore();
+  const { categories, subscribe: subscribeCategories } = useCategoryStore();
 
   useEffect(() => {
-    const unsub = subscribe();
-    return unsub;
-  }, [subscribe]);
+    const unsubProducts = subscribe();
+    const unsubCategories = subscribeCategories();
+    return () => {
+      unsubProducts();
+      unsubCategories();
+    };
+  }, [subscribe, subscribeCategories]);
 
   const list = initialized && products.length > 0 ? products : SEED_PRODUCTS;
   const featured = list.filter((p) => p.isFeatured).slice(0, 5);
@@ -34,7 +40,7 @@ export function HomePage() {
             <p>New Arrivals Just For You</p>
             <h1>New Drop<br />Just Landed</h1>
             <span>Step into the latest styles and elevate your wardrobe with our newest collection.</span>
-            <div className="store-hero__actions"><Link to="/category/dresses">Shop Now</Link><Link to="/category/accessories"><b>▶</b> Browse Collection</Link></div>
+            <div className="store-hero__actions"><Link to="/category/womens-shoes">Shop Now</Link><Link to="/category/womens-bags"><b>▶</b> Browse Collection</Link></div>
           </div>
           <ImageLoader src={heroIMG} alt="FashionDrop hero" wrapperClassName="store-hero__image-wrap" imgClassName="store-hero__image" objectFit="cover" loading="eager" />
         </div>
@@ -48,21 +54,24 @@ export function HomePage() {
       {/*</section>*/}
 
       <section className="container store-section">
-        <div className="store-section__head"><h2>Shop by Category</h2><Link to="/category/dresses">View All</Link></div>
+        <div className="store-section__head"><h2>Shop by Category</h2><Link to="/category/mens-shoes">View All</Link></div>
         <div className="category-grid">
-          {CATEGORY_TILES.map(({ label, value, Icon }) => (
-            <Link to={`/category/${value}`} key={value} className="category-tile category-tile--icon">
-              <span className="category-tile__icon-wrap">
-                <Icon size={34} strokeWidth={1.8} />
-              </span>
-              <strong>{label}</strong>
-            </Link>
-          ))}
+          {categories.map((category) => {
+            const Icon = categoryIcon(category.value);
+            return (
+              <Link to={`/category/${category.value}`} key={category.value} className="category-tile category-tile--icon">
+                <span className="category-tile__icon-wrap">
+                  <Icon size={34} strokeWidth={1.8} />
+                </span>
+                <strong>{category.label}</strong>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
       <section className="container store-section">
-        <div className="store-section__head"><h2>Featured Picks</h2><Link to="/category/dresses">View All</Link></div>
+        <div className="store-section__head"><h2>Featured Picks</h2><Link to="/category/womens-shoes">View All</Link></div>
         <div className="product-grid">{featured.map((product) => <ProductCard product={product} key={product.id} />)}</div>
       </section>
 

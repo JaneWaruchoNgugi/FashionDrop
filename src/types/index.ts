@@ -1,11 +1,6 @@
 // ---------- Product ----------
 
-export type ProductCategory =
-  | 'dresses'
-  | 'two-pieces'
-  | 'bags'
-  | 'shoes'
-  | 'accessories';
+export type ProductCategory = string;
 
 export interface ProductVariant {
   size: string;
@@ -44,14 +39,13 @@ export interface CartLine {
 // ---------- Order ----------
 
 export type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'packed'
+  | 'pending_payment'
+  | 'paid'
   | 'out_for_delivery'
   | 'delivered'
   | 'cancelled';
 
-export type PaymentMethod = 'mpesa_manual' | 'pay_on_delivery';
+export type PaymentStatus = 'unpaid' | 'paid';
 
 export interface DeliveryDetails {
   fullName: string;
@@ -62,45 +56,65 @@ export interface DeliveryDetails {
   notes?: string;
 }
 
+export type DeliveryZone = 'nairobi' | 'outside';
+
+export interface DeliveryEstimate {
+  min: number;
+  max: number;
+}
+
 export interface Order {
   id: string;
+  buyerId: string;
+  buyerEmail: string;
   orderNumber: string; // human-friendly, e.g. FD-2026-0001
   lines: CartLine[];
   subtotal: number;
-  deliveryFee: number;
-  total: number;
+  deliveryZone: DeliveryZone;
+  deliveryEstimate: DeliveryEstimate; // shown to customer; not charged upfront
+  deliveryFee: number; // actual fee the owner confirms/records; defaults to 0
+  total: number; // amount to settle; starts at subtotal, owner may update
   delivery: DeliveryDetails;
-  paymentMethod: PaymentMethod;
-  mpesaCode?: string; // customer-entered confirmation code, for manual verification
+  paymentStatus: PaymentStatus;
   status: OrderStatus;
   statusHistory: { status: OrderStatus; at: number }[];
-  riderId?: string;
-  riderName?: string;
-  proofOfDeliveryImage?: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  packed: 'Packed',
+  pending_payment: 'Pending Payment',
+  paid: 'Paid',
   out_for_delivery: 'Out for Delivery',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
 };
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
-  'pending',
-  'confirmed',
-  'packed',
+  'pending_payment',
+  'paid',
   'out_for_delivery',
   'delivered',
 ];
 
-export const DELIVERY_AREAS = [
-  { label: 'Nairobi CBD', value: 'Nairobi CBD', feeMin: 250, feeMax: 350 },
-  { label: 'Kiambu', value: 'Kiambu', feeMin: 400, feeMax: 500 },
+// ---------- Delivery ----------
+
+// All 47 Kenyan counties. Nairobi gets the low delivery band; everywhere else
+// is quoted by distance and confirmed by the owner before dispatch.
+export const KENYAN_COUNTIES: string[] = [
+  'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita-Taveta',
+  'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo', 'Meru',
+  'Tharaka-Nithi', 'Embu', 'Kitui', 'Machakos', 'Makueni', 'Nyandarua',
+  'Nyeri', 'Kirinyaga', "Murang'a", 'Kiambu', 'Turkana', 'West Pokot',
+  'Samburu', 'Trans Nzoia', 'Uasin Gishu', 'Elgeyo-Marakwet', 'Nandi',
+  'Baringo', 'Laikipia', 'Nakuru', 'Narok', 'Kajiado', 'Kericho', 'Bomet',
+  'Kakamega', 'Vihiga', 'Bungoma', 'Busia', 'Siaya', 'Kisumu', 'Homa Bay',
+  'Migori', 'Kisii', 'Nyamira', 'Nairobi',
 ];
 
-export const KENYAN_COUNTIES = DELIVERY_AREAS.map((area) => area.value);
+export function deliveryBand(county: string): { zone: DeliveryZone } & DeliveryEstimate {
+  if (county.trim().toLowerCase() === 'nairobi') {
+    return { zone: 'nairobi', min: 100, max: 200 };
+  }
+  return { zone: 'outside', min: 200, max: 500 };
+}

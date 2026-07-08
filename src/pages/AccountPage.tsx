@@ -118,10 +118,10 @@ export function AccountPage() {
   return (
     <div className="container account-page">
       <section className="account-panel">
-        <span className="badge badge-flame">FashionDrop Account</span>
+        <span className="badge badge-flame">Login or Create Account</span>
         <h1 className="hero__title account-title">{mode === 'signup' ? 'Create Account' : 'Sign In'}</h1>
         <p className="account-muted">
-          Sign in to place orders, pay delivery fees, and track your rider once dispatch starts.
+          Log in or create your buyer account to place orders, pay via M-Pesa, and track your delivery.
         </p>
 
         <div className="account-switch">
