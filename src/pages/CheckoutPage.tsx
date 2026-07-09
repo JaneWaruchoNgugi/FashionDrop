@@ -31,7 +31,9 @@ export function CheckoutPage() {
   const items = subtotal();
   const band = form.county ? deliveryBand(form.county) : null;
   const deliveryEstimateLabel = band
-    ? `${formatKES(band.min)} - ${formatKES(band.max)}`
+    ? band.min === band.max
+      ? formatKES(band.min)
+      : `${formatKES(band.min)} - ${formatKES(band.max)}`
     : 'Select your county';
 
   function update<K extends keyof DeliveryDetails>(key: K, value: string) {
@@ -193,7 +195,7 @@ export function CheckoutPage() {
               <p className="mpesa-instructions__hint">
                 After you place the order, send the item total to the number above via M-Pesa {POCHI_NAME}.
                 We confirm your payment, then arrange delivery. Your delivery fee ({deliveryEstimateLabel})
-                depends on your location and is confirmed with you separately before dispatch.
+                is confirmed with you separately and paid before dispatch.
               </p>
             </div>
           </section>
@@ -215,7 +217,7 @@ export function CheckoutPage() {
             <span className="mono">{formatKES(items)}</span>
           </div>
           <div className="cart-summary__row">
-            <span>Delivery (estimate)</span>
+            <span>Delivery</span>
             <span className="mono">{deliveryEstimateLabel}</span>
           </div>
           <div className="cart-summary__divider" />

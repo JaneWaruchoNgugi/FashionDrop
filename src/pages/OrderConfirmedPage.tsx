@@ -50,7 +50,9 @@ export function OrderConfirmedPage() {
           <p className="mpesa-instructions__hint">
             Use your order number <strong>{order.orderNumber}</strong> as the M-Pesa reference if asked.
             Once we receive your payment we'll confirm this order and contact you about the delivery fee
-            (estimated {formatKES(order.deliveryEstimate.min)} - {formatKES(order.deliveryEstimate.max)})
+            ({order.deliveryEstimate.min === order.deliveryEstimate.max
+              ? formatKES(order.deliveryEstimate.min)
+              : `${formatKES(order.deliveryEstimate.min)} - ${formatKES(order.deliveryEstimate.max)}`})
             before dispatch.
           </p>
         </div>

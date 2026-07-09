@@ -99,8 +99,8 @@ export const ORDER_STATUS_FLOW: OrderStatus[] = [
 
 // ---------- Delivery ----------
 
-// All 47 Kenyan counties. Nairobi gets the low delivery band; everywhere else
-// is quoted by distance and confirmed by the owner before dispatch.
+// All 47 Kenyan counties. Nairobi gets a flat KES 200 delivery fee; everywhere
+// else is a flat KES 350, confirmed with the buyer before dispatch.
 export const KENYAN_COUNTIES: string[] = [
   'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita-Taveta',
   'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo', 'Meru',
@@ -114,7 +114,7 @@ export const KENYAN_COUNTIES: string[] = [
 
 export function deliveryBand(county: string): { zone: DeliveryZone } & DeliveryEstimate {
   if (county.trim().toLowerCase() === 'nairobi') {
-    return { zone: 'nairobi', min: 100, max: 200 };
+    return { zone: 'nairobi', min: 200, max: 200 };
   }
-  return { zone: 'outside', min: 200, max: 500 };
+  return { zone: 'outside', min: 350, max: 350 };
 }

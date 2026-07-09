@@ -893,11 +893,11 @@ export function AdminPage() {
   }
 
   function renderStoreSettings() {
-    return <>{renderPageHeader('Store Settings', 'Brand, storefront, and fulfillment defaults.')}<section className="admin-card admin-settings-grid"><InfoCard title="Store Name" value="FashionDrop Kenya" note="Visible across admin and storefront" /><InfoCard title="Theme" value="Pink Admin" note="Dashboard design system active" /><InfoCard title="Delivery" value="Nationwide" note="Nairobi KES 100-200, rest of Kenya KES 200-500" /></section></>;
+    return <>{renderPageHeader('Store Settings', 'Brand, storefront, and fulfillment defaults.')}<section className="admin-card admin-settings-grid"><InfoCard title="Store Name" value="FashionDrop Kenya" note="Visible across admin and storefront" /><InfoCard title="Theme" value="Pink Admin" note="Dashboard design system active" /><InfoCard title="Delivery" value="Nationwide" note="Nairobi KES 200, rest of Kenya KES 350" /></section></>;
   }
 
   function renderPaymentSettings() {
-    return <>{renderPageHeader('Payment Settings', 'Manual M-Pesa Pochi La Biashara payment.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Pochi La Biashara" note="Customer pays item total, owner confirms here" /><InfoCard title="Pochi Number" value="0791847766" note="Set VITE_POCHI_NUMBER to override" /><InfoCard title="Delivery Fee" value="Nairobi 100-200 / Rest 200-500" note="Confirmed with customer per order" /></section></>;
+    return <>{renderPageHeader('Payment Settings', 'Manual M-Pesa Pochi La Biashara payment.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Pochi La Biashara" note="Customer pays item total, owner confirms here" /><InfoCard title="Pochi Number" value="0791847766" note="Set VITE_POCHI_NUMBER to override" /><InfoCard title="Delivery Fee" value="Nairobi 200 / Rest 350" note="Confirmed with customer per order" /></section></>;
   }
 
   function renderUsers() {
