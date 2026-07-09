@@ -18,6 +18,29 @@
   opacity: 1;
 }
 
+.image-loader--fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(255, 248, 243, 0.95), rgba(241, 225, 211, 0.92));
+  color: rgba(58, 22, 8, 0.45);
+}
+
+.image-loader__fallback-icon {
+  display: grid;
+  place-items: center;
+}
+
+.image-loader__fallback-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(58, 22, 8, 0.4);
+}
+
 .image-loader__spinner {
   position: absolute;
   inset: 0;

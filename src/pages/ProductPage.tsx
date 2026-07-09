@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Truck, ShieldCheck, RotateCcw, Star, Minus, Plus, ChevronRight } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useCategoryStore } from '../store/categoryStore';
-import { SEED_PRODUCTS } from '../store/seedData';
 import { useCartStore } from '../store/cartStore';
 import { ImageLoader } from '../components/ImageLoader';
 import { ProductCard } from '../components/ProductCard';
@@ -46,11 +45,8 @@ export function ProductPage() {
   }, [subscribe, subscribeCategories]);
 
   const product = useMemo(() => {
-    const fromStore = getById(productId ?? '');
-    if (fromStore) return fromStore;
-    if (!initialized || products.length === 0) return SEED_PRODUCTS.find((p) => p.id === productId);
-    return undefined;
-  }, [productId, products, initialized, getById]);
+    return getById(productId ?? '');
+  }, [productId, products, getById]);
 
   const galleryImages = useMemo(() => imageOptions(product?.images ?? []), [product]);
   const sizes = useMemo(() => Array.from(new Set(product?.variants.map((v) => v.size) ?? [])), [product]);
@@ -60,9 +56,8 @@ export function ProductPage() {
   }, [product, galleryImages]);
 
   const relatedProducts = useMemo(() => {
-    const list = initialized && products.length > 0 ? products : SEED_PRODUCTS;
-    return list.filter((p) => p.category === product?.category && p.id !== product?.id).slice(0, 4);
-  }, [products, initialized, product]);
+    return products.filter((p) => p.category === product?.category && p.id !== product?.id).slice(0, 4);
+  }, [products, product]);
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -84,7 +79,7 @@ export function ProductPage() {
   }, [selectedColor, galleryImages]);
 
   if (!product) {
-    return <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}><p style={{ color: 'var(--color-stone)' }}>This piece isn't available — it may have sold out.</p></div>;
+    return <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}><p style={{ color: 'var(--color-stone)' }}>{!initialized ? 'Loading…' : "This piece isn't available — it may have sold out."}</p></div>;
   }
 
   const categoryLabel = getByValue(product.category)?.label ?? 'Shop';

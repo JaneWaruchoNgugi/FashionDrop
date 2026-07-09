@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { Shirt, Handbag, Footprints, Gem, Sparkles, type LucideIcon } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useCategoryStore } from '../store/categoryStore';
-import { SEED_PRODUCTS } from '../store/seedData';
 import { ProductCard } from '../components/ProductCard';
 import { ImageLoader } from '../components/ImageLoader';
 import './HomePage.css';
@@ -29,8 +28,7 @@ export function HomePage() {
     };
   }, [subscribe, subscribeCategories]);
 
-  const list = initialized && products.length > 0 ? products : SEED_PRODUCTS;
-  const featured = list.filter((p) => p.isFeatured).slice(0, 5);
+  const featured = products.filter((p) => p.isFeatured).slice(0, 5);
 
   return (
     <>
@@ -72,7 +70,13 @@ export function HomePage() {
 
       <section className="container store-section">
         <div className="store-section__head"><h2>Featured Picks</h2><Link to="/category/womens-shoes">View All</Link></div>
-        <div className="product-grid">{featured.map((product) => <ProductCard product={product} key={product.id} />)}</div>
+        {!initialized ? (
+          <p style={{ color: 'var(--color-stone)' }}>Loading products…</p>
+        ) : featured.length === 0 ? (
+          <p style={{ color: 'var(--color-stone)' }}>New featured picks land soon.</p>
+        ) : (
+          <div className="product-grid">{featured.map((product) => <ProductCard product={product} key={product.id} />)}</div>
+        )}
       </section>
 
       <section className="container why-strip">

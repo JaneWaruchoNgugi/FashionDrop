@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ImageOff } from 'lucide-react';
 import './ImageLoader.css';
 
 type ImageLoaderProps = {
@@ -21,10 +22,30 @@ export function ImageLoader({
   objectFit = 'cover',
 }: ImageLoaderProps) {
   const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
+    setErrored(false);
   }, [src]);
+
+  const hasSrc = Boolean(src);
+
+  if (!hasSrc || errored) {
+    return (
+      <div
+        className={['image-loader', 'image-loader--fallback', wrapperClassName].filter(Boolean).join(' ')}
+        data-fit={objectFit}
+        role="img"
+        aria-label={alt}
+      >
+        <span className="image-loader__fallback-icon" aria-hidden="true">
+          <ImageOff size={28} strokeWidth={1.6} />
+        </span>
+        <span className="image-loader__fallback-text">Image unavailable</span>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -38,7 +59,7 @@ export function ImageLoader({
         className={[className, imgClassName].filter(Boolean).join(' ')}
         loading={loading}
         onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
+        onError={() => setErrored(true)}
       />
     </div>
   );
