@@ -7,6 +7,7 @@ import './TrackOrderPage.css';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString('en-KE')}`;
+
 }
 
 export function TrackOrderPage() {
