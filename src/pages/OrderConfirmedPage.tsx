@@ -46,14 +46,11 @@ export function OrderConfirmedPage() {
         <div className="mpesa-instructions" style={{ margin: '24px auto', maxWidth: 680 }}>
           <p className="mpesa-instructions__lead">Pay via M-Pesa — {POCHI_NAME}</p>
           <p className="mono mpesa-instructions__number">{POCHI_NUMBER}</p>
-          <p className="mono">Send {formatKES(order.total)} (item total)</p>
+          <p className="mono">Send {formatKES(order.total)}{order.deliveryFee > 0 ? ` (${formatKES(order.subtotal)} items + ${formatKES(order.deliveryFee)} delivery)` : ' (item total)'}</p>
           <p className="mpesa-instructions__hint">
             Use your order number <strong>{order.orderNumber}</strong> as the M-Pesa reference if asked.
-            Once we receive your payment we'll confirm this order and contact you about the delivery fee
-            ({order.deliveryEstimate.min === order.deliveryEstimate.max
-              ? formatKES(order.deliveryEstimate.min)
-              : `${formatKES(order.deliveryEstimate.min)} - ${formatKES(order.deliveryEstimate.max)}`})
-            before dispatch.
+            {order.deliveryFee > 0 ? ' The delivery fee is included in this total.' : ''} Once we receive your
+            payment we'll confirm this order and arrange dispatch.
           </p>
         </div>
       )}

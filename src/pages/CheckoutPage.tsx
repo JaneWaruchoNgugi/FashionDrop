@@ -30,6 +30,8 @@ export function CheckoutPage() {
 
   const items = subtotal();
   const band = form.county ? deliveryBand(form.county) : null;
+  const deliveryFee = band ? band.min : 0;
+  const payTotal = items + deliveryFee;
   const deliveryEstimateLabel = band
     ? band.min === band.max
       ? formatKES(band.min)
@@ -75,8 +77,8 @@ export function CheckoutPage() {
         subtotal: items,
         deliveryZone: deliveryBandValue.zone,
         deliveryEstimate: { min: deliveryBandValue.min, max: deliveryBandValue.max },
-        deliveryFee: 0,
-        total: items, // customer pays the item subtotal now; delivery fee confirmed separately
+        deliveryFee: deliveryBandValue.min,
+        total: items + deliveryBandValue.min, // buyer pays item subtotal + flat delivery fee
         delivery: form,
         paymentStatus: 'unpaid',
         status: 'pending_payment',
@@ -191,11 +193,11 @@ export function CheckoutPage() {
             <div className="mpesa-instructions">
               <p className="mpesa-instructions__lead">Pay via M-Pesa — {POCHI_NAME}</p>
               <p className="mono mpesa-instructions__number">{POCHI_NUMBER}</p>
-              <p className="mono">Send {formatKES(items)} (item total)</p>
+              <p className="mono">Send {formatKES(payTotal)}{band ? ` (${formatKES(items)} items + ${deliveryEstimateLabel} delivery)` : ' (item total)'}</p>
               <p className="mpesa-instructions__hint">
-                After you place the order, send the item total to the number above via M-Pesa {POCHI_NAME}.
-                We confirm your payment, then arrange delivery. Your delivery fee ({deliveryEstimateLabel})
-                is confirmed with you separately and paid before dispatch.
+                After you place the order, send the total above to the number via M-Pesa {POCHI_NAME}.
+                {band ? ' This includes your delivery fee.' : ' Select your county to see your delivery fee.'} We confirm your
+                payment, then arrange delivery.
               </p>
             </div>
           </section>
@@ -223,10 +225,10 @@ export function CheckoutPage() {
           <div className="cart-summary__divider" />
           <div className="cart-summary__row cart-summary__row--total">
             <span>Pay Now via M-Pesa</span>
-            <span className="mono">{formatKES(items)}</span>
+            <span className="mono">{formatKES(payTotal)}</span>
           </div>
           <p className="mpesa-instructions__hint" style={{ marginTop: 6 }}>
-            Delivery fee is confirmed separately and paid before dispatch.
+            {band ? 'Delivery fee is included in the total above.' : 'Select your county to include the delivery fee.'}
           </p>
 
           <button type="submit" className="btn btn-primary checkout-submit" disabled={submitting}>

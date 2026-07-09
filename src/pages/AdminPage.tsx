@@ -897,7 +897,7 @@ export function AdminPage() {
   }
 
   function renderPaymentSettings() {
-    return <>{renderPageHeader('Payment Settings', 'Manual M-Pesa Pochi La Biashara payment.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Pochi La Biashara" note="Customer pays item total, owner confirms here" /><InfoCard title="Pochi Number" value="0791847766" note="Set VITE_POCHI_NUMBER to override" /><InfoCard title="Delivery Fee" value="Nairobi 200 / Rest 350" note="Confirmed with customer per order" /></section></>;
+    return <>{renderPageHeader('Payment Settings', 'Manual M-Pesa Pochi La Biashara payment.')}<section className="admin-card admin-settings-grid"><InfoCard title="M-Pesa" value="Pochi La Biashara" note="Customer pays items + delivery, owner confirms here" /><InfoCard title="Pochi Number" value="0791847766" note="Set VITE_POCHI_NUMBER to override" /><InfoCard title="Delivery Fee" value="Nairobi 200 / Rest 350" note="Confirmed with customer per order" /></section></>;
   }
 
   function renderUsers() {
